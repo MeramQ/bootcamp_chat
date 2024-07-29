@@ -1,12 +1,16 @@
 <script lang="ts">
 import { ref } from 'vue';
 import { bootcamp_chat_backend } from '../../declarations/bootcamp_chat_backend';
+import { AuthClient } from '@dfinity/auth-client';
+import { HttpAgent } from '@dfinity/agent';
+import type { Identity } from '@dfinity/agent';
 
 export default {
   data() {
     return {
       newNote: "",
-      notes: [] as string[]
+      notes: [] as string[],
+      identity: undefined as undefined | Identity
     }
   },
   methods: {
@@ -16,9 +20,18 @@ export default {
     },
     async pobierzNotatki() {
       this.notes = await bootcamp_chat_backend.get_notes()
+    },
+    async login() {
+      const authClient = await AuthClient.create();
+      await authClient.login({
+        identityProvider: "http://be2us-64aaa-aaaaa-qaabq-cai.localhost:4943/"
+      })
+      const identity = authClient.getIdentity();
+      console.log("Zalogowano", identity.getPrincipal())
+      this.identity= identity;
     }
   },
-  mounted(){
+  mounted() {
     this.pobierzNotatki()
   }
 }
@@ -29,7 +42,8 @@ export default {
     <img src="/logo2.svg" alt="DFINITY logo" />
     <br />
     <br />
-      <div>
+    {{ identity?.getPrincipal() }}<button @click="login">Log in</button>
+    <div>
       {{ notes }}
     </div>
     <div>
