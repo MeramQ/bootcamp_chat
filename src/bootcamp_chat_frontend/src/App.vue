@@ -47,7 +47,7 @@ export default {
     async login() {
       const authClient = await AuthClient.create();
       await authClient.login({
-        identityProvider: "http://avqkn-guaaa-aaaaa-qaaea-cai.localhost:4943/"
+        identityProvider: "http://be2us-64aaa-aaaaa-qaabq-cai.localhost:4943/"
       })
 
       const identity = authClient.getIdentity();
@@ -67,7 +67,7 @@ export default {
     <br />
     {{ principalText }} <button @click="login">login</button>
     <div>
-      <input v-model="targetPrincipal" />
+      <input v-model="targetPrincipal" /><button @click="pobierzChaty">odśwież</button>
     </div>
     <div>
       <div v-for="chat in chats[0]">
