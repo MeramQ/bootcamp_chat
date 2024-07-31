@@ -3,6 +3,7 @@ import { bootcamp_chat_backend, canisterId, createActor } from '../../declaratio
 import { AuthClient } from '@dfinity/auth-client';
 import type { Identity } from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
+import type { UserData } from '../../declarations/bootcamp_chat_backend/bootcamp_chat_backend.did';
 
 export default {
   data() {
@@ -12,6 +13,7 @@ export default {
       identity: undefined as undefined | Identity,
       principal: undefined as undefined | Principal,
       targetPrincipal: "",
+      userData: undefined as undefined | UserData,
     }
   },
   methods: {
@@ -21,21 +23,21 @@ export default {
       }
       return {
         identity: this.identity,
-        principal: this.principal 
+        principal: this.principal
       }
     },
-    validateTargetPrincipal(){
+    validateTargetPrincipal() {
       const cleanTargetPrincipal = this.targetPrincipal.trim();
-      if (cleanTargetPrincipal === ""){
+      if (cleanTargetPrincipal === "") {
         throw new Error("No principal")
       }
       const targetPrincipal = Principal.fromText(cleanTargetPrincipal)
-      if (!targetPrincipal || targetPrincipal === Principal.anonymous()){
+      if (!targetPrincipal || targetPrincipal === Principal.anonymous()) {
         throw new Error("Wrong target")
       }
       return targetPrincipal
     },
-    getAuthClient(){
+    getAuthClient() {
       this.isUserLogged()
       return createActor(canisterId, {
         agentOptions: {
@@ -50,7 +52,7 @@ export default {
       await this.pobierzChaty()
     },
     async pobierzChaty() {
-      const {identity, principal} = this.isUserLogged()
+      const { identity, principal } = this.isUserLogged()
       const targetPrincipal = this.validateTargetPrincipal()
 
       const chatPath = [targetPrincipal, identity.getPrincipal()].sort()
@@ -62,12 +64,27 @@ export default {
         identityProvider: "http://be2us-64aaa-aaaaa-qaabq-cai.localhost:4943/",
         onSuccess: async () => {
           const identity = authClient.getIdentity();
-          this.principal = identity.getPrincipal();
+          const principal = identity.getPrincipal();
+          this.principal = principal;
           this.identity = identity;
           console.log("Zalogowano", this.principal)
-          await this.pobierzChaty()
+
+          const maybeUserData = await bootcamp_chat_backend.get_user(principal);
+          if (maybeUserData.length === 0) {
+            this.userData = undefined;
+          } else {
+            this.userData = maybeUserData[0];
+          }
         }
       })
+    },
+    async logout() {
+      const authClient = await AuthClient.create();
+      await authClient.logout();
+      this.identity = undefined;
+      this.principal = undefined;
+      this.chats = [];
+      this.userData = undefined;
     }
   },
 }
@@ -75,10 +92,9 @@ export default {
 
 <template>
   <main>
-    <img src="/logo2.svg" alt="DFINITY logo" />
-    <br />
-    <br />
-    {{ principal }} <button @click="login">login</button>
+    {{ principal }}
+    <button v-if="!principal" @click="login">login</button>
+    <button v-if="principal" @click="logout">logout</button>
     <div>
       <input v-model="targetPrincipal" /><button @click="pobierzChaty">pobierz chat</button>
     </div>
