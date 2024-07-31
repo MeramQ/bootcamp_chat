@@ -14,6 +14,8 @@ export default {
       principal: undefined as undefined | Principal,
       targetPrincipal: "",
       userData: undefined as undefined | UserData,
+      newUsername: "",
+      allUsers: [] as [Principal, UserData][],
     }
   },
   methods: {
@@ -68,13 +70,8 @@ export default {
           this.principal = principal;
           this.identity = identity;
           console.log("Zalogowano", this.principal)
-
-          const maybeUserData = await bootcamp_chat_backend.get_user(principal);
-          if (maybeUserData.length === 0) {
-            this.userData = undefined;
-          } else {
-            this.userData = maybeUserData[0];
-          }
+          await this.getUserData();
+          await this.getAllUsers();
         }
       })
     },
@@ -85,6 +82,26 @@ export default {
       this.principal = undefined;
       this.chats = [];
       this.userData = undefined;
+    },
+    async registerUsername() {
+      const trimmedUsername = this.newUsername.trim();
+      const backend = this.getAuthClient();
+      await backend.register(trimmedUsername);
+      await this.getUserData();
+      await this.getAllUsers();
+    },
+    async getUserData() {
+      const { principal } = this.isUserLogged();
+      const maybeUserData = await bootcamp_chat_backend.get_user(principal as Principal);
+      if (maybeUserData.length === 0) {
+        this.userData = undefined;
+      } else {
+        this.userData = maybeUserData[0];
+      }
+      console.log("UserData", this.userData);
+    },
+    async getAllUsers() {
+      this.allUsers = await bootcamp_chat_backend.get_users()
     }
   },
 }
@@ -92,19 +109,27 @@ export default {
 
 <template>
   <main>
-    {{ principal }}
     <button v-if="!principal" @click="login">login</button>
     <button v-if="principal" @click="logout">logout</button>
-    <div>
-      <input v-model="targetPrincipal" /><button @click="pobierzChaty">pobierz chat</button>
+    <div v-if="principal && !userData">
+      <input v-model="newUsername" placeholder="Podaj nick"><button @click="registerUsername">Ustaw nick</button>
     </div>
-    <div>
-      <div v-for="chat in chats[0]">
-        {{ chat }}
+    <div v-if="principal && userData">
+      {{ userData.nickname }}
+      <div v-if="allUsers">
+        <select v-model="targetPrincipal">
+          <option v-for="[userPrincipal, userData] in allUsers" :value="userPrincipal.toText()">{{ userData.nickname }}</option>
+        </select>
       </div>
-    </div>
-    <div>
-      <textarea v-model="newChat"></textarea><button @click="dodajChatMSG">Dodaj notatke</button>
+      <div>
+        <div v-for="chat in chats[0]">
+          {{ chat }}
+        </div>
+      </div>
+      <div>
+        <textarea v-model="newChat" placeholder="Wiadmość"></textarea><button @click="dodajChatMSG">Dodaj
+          notatke</button>
+      </div>
     </div>
   </main>
 </template>
